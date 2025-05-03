@@ -1,6 +1,6 @@
 ﻿/*
 	===========================
-	||	  Code by Kazumin    ||
+		  Code by Kazumin    
 	===========================
 */
 
@@ -345,74 +345,76 @@ where pc.VITRI = N'Trưởng Dự Án' and nv.HONV = N'Đinh'
 	group by nv.MANV, tn.MA_NVIEN, nv.HONV, nv.TENLOT, nv.TEN
 	having count(*) > 2
 --s. Ứng với mỗi phòng cho biết họ tên nhân viên có mức lương cao nhất
-	SELECT nv.HONV, nv.LUONG, pb.TENPHONG
-	FROM NHANVIEN nv
-	JOIN (
-		SELECT PHG, MAX(LUONG) AS MAX_LUONG
-		FROM NHANVIEN
-		GROUP BY PHG
-	) AS maxluongphong
-	ON nv.PHG = maxluongphong.PHG AND nv.LUONG = maxluongphong.MAX_LUONG
-	JOIN PHONGBAN as pb ON nv.PHG = pb.MAPHG;
+	select nv.HONV, nv.LUONG, pb.TENPHONG
+	from NHANVIEN nv
+	inner join (
+		select PHG, max(LUONG) as MAX_LUONG
+		from NHANVIEN
+		group by PHG
+	) as maxluongphong
+	on nv.PHG = maxluongphong.PHG AND nv.LUONG = maxluongphong.MAX_LUONG
+	join PHONGBAN as pb ON nv.PHG = pb.MAPHG;
 --t. Cho biết họ tên nhân viên nam và số lượng các đề án mà nhân viên đó tham gia
-SELECT N.HONV, N.TENLOT, N.TEN, COUNT(P.MADA) AS SoDeAn
-FROM NHANVIEN N
-LEFT JOIN PHANCONG P ON N.MANV = P.MA_NVIEN
-WHERE N.PHAI = 'NAM'
-GROUP BY N.HONV, N.TENLOT, N.TEN;
+select N.HONV, N.TENLOT, N.TEN, count(P.MADA) AS SoDeAn
+from NHANVIEN N
+left join PHANCONG P ON N.MANV = P.MA_NVIEN
+where N.PHAI = N'Nam'
+group by N.HONV, N.TENLOT, N.TEN;
 --u. Cho biết nhân viên (HONV, TENLOT, TENNV) nào có lương cao nhất.
-SELECT HONV, TENLOT, TEN, LUONG
-FROM NHANVIEN
-WHERE LUONG = (SELECT MAX(LUONG) FROM NHANVIEN);
+select HONV, TENLOT, TEN, LUONG
+from NHANVIEN
+where LUONG = (select max(LUONG) from NHANVIEN);
 --v. Cho biết mã nhân viên (MA_NVIEN) nào có nhiều thân nhân nhất.
-SELECT T.MA_NVIEN, COUNT(TENTN) AS SoThanNhan
-FROM THANNHAN T
-GROUP BY T.MA_NVIEN
-HAVING COUNT(TENTN) = (
-    SELECT MAX(SoTN)
-    FROM (
-        SELECT COUNT(*) AS SoTN
-        FROM THANNHAN
-        GROUP BY MA_NVIEN
-    ) AS Temp
+select T.MA_NVIEN, count(TENTN) as SoThanNhan
+from THANNHAN T
+group by T.MA_NVIEN
+having count(TENTN) = (
+    select max(SoTN)
+    from (
+        select count(*) as SoTN
+        from THANNHAN
+        group by MA_NVIEN
+    ) as Temp
 );
 --w. Cho biết họ tên trưởng phòng của phòng có đông nhân viên nhất
-SELECT N.HONV, N.TENLOT, N.TEN
-FROM NHANVIEN N
-JOIN PHONGBAN P ON N.MANV = P.TRPHG
-WHERE P.MAPHG = (
-    SELECT PHG
-    FROM NHANVIEN
-    GROUP BY PHG
-    ORDER BY COUNT(*) DESC
-    LIMIT 1
-);
+select N.HONV, N.TENLOT, N.TEN
+from NHANVIEN N
+join PHONGBAN P ON N.MANV = P.TRPHG
+where P.MAPHG = (
+    select top 1 PHG
+    from NHANVIEN
+    group by PHG
+    order by count(*) desc
+	
+)
 --x. Đếm số nhân viên nữ của từng phòng, hiển thị: TenPHG, SoNVNữ, những khoa không có nhân viên nữ hiển thị SoNVNữ=0
-SELECT P.TENPHG, COUNT(CASE WHEN N.PHAI = 'NU' THEN 1 END) AS SoNVNu
-FROM PHONGBAN P
-LEFT JOIN NHANVIEN N ON P.MAPHG = N.PHG
-GROUP BY P.TENPHG;
+select P.TENPHONG, count(CASE WHEN N.PHAI = N'Nữ' THEN 1 END) as SoNVNu
+from PHONGBAN as P
+left join NHANVIEN N on P.MAPHG = N.PHG
+group by P.TENPHONG;
 --4. VIEW
 --a. Cho biết tên phòng, số lượng nhân viên và mức lương trung bình của từng phòng.
 CREATE VIEW VW_PHONG_THONGKE AS
-SELECT P.TENPHG, COUNT(N.MA_NVIEN) AS SoNV, AVG(N.LUONG) AS LuongTB
+SELECT P.TENPHONG, COUNT(N.MANV) AS SoNV, AVG(N.LUONG) AS LuongTB
 FROM PHONGBAN P
 LEFT JOIN NHANVIEN N ON P.MAPHG = N.PHG
-GROUP BY P.TENPHG;
+GROUP BY P.TENPHONG
+select * from VW_PHONG_THONGKE
 --b. Cho biết họ tên nhân viên và số lượng các đề án mà nhân viên đó tham gia
 CREATE VIEW VW_NV_DEAN AS
-SELECT N.HONV, N.TENLOT, N.TENNV, COUNT(P.MADA) AS SoDeAn
+SELECT N.HONV, N.TENLOT, N.TEN, COUNT(P.MADA) AS SoDeAn
 FROM NHANVIEN N
-LEFT JOIN PHANCONG P ON N.MA_NVIEN = P.MA_NVIEN
-GROUP BY N.HONV, N.TENLOT, N.TENNV;
+LEFT JOIN PHANCONG P ON N.MANV = P.MA_NVIEN
+GROUP BY N.HONV, N.TENLOT, N.TEN
+select * from VW_NV_DEAN
 --c. Thống kê số nhân viên của từng phòng, hiển thị: MaPH, TenPHG, SoNVNữ, SoNVNam, TongSoNV. 
 CREATE VIEW VW_PHONG_GIOITINH AS
 SELECT 
     P.MAPHG, 
-    P.TENPHG,
+    P.TENPHONG,
     COUNT(CASE WHEN N.PHAI = 'NU' THEN 1 END) AS SoNVNu,
     COUNT(CASE WHEN N.PHAI = 'NAM' THEN 1 END) AS SoNVNam,
     COUNT(N.MANV) AS TongSoNV
 FROM PHONGBAN P
 LEFT JOIN NHANVIEN N ON P.MAPHG = N.PHG
-GROUP BY P.MAPHG, P.TENPHONG;
+GROUP BY P.MAPHG, P.TENPHONG
